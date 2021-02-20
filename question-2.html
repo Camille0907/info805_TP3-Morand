@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Partie 2</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link rel="stylesheet" href="css/basic.css">
+  
+    <script src="three.js"></script>
+    <script src="js/Detector.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script type="text/javascript">
+
+    // Checks that your browser supports WebGL.
+    if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+    let renderer = null;
+    let scene = null;
+    let camera = null;
+    let earth = null;
+    let moon = null;
+    let earthGroup = null;
+    let moonGroup = null;
+    let curTime = Date.now();
+    let controls = null;
+
+    // This function is called whenever the document is loaded
+      function init() {
+        // Get display canvas
+        const canvas = document.getElementById("webglcanvas");
+        console.log( canvas );
+
+        // Create the Three.js renderer and attach it to our canvas
+        renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true } );
+        // Set the viewport size
+        renderer.setSize( canvas.width, canvas.height );
+
+        // Create a new Three.js scene
+        scene = new THREE.Scene();
+
+        // Add  a camera so we can view the scene
+        camera = new THREE.PerspectiveCamera( 45, canvas.width / canvas.height, 1, 4000 );
+        camera.position.set(15, 100, -15);
+        camera.rotation.set(-Math.PI/2, 0, 0);
+
+        //Controle de la caméra par la souris
+        controls = new THREE.OrbitControls( camera, renderer.domElement );
+        controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+        controls.dampingFactor = 0.25;
+        controls.screenSpacePanning = false;
+        controls.minDistance = 1;
+        controls.maxDistance = 200;
+
+        // Add background
+        const path = "images/MilkyWay/";
+        const format = '.jpg';
+        const urls = [
+          path + 'posx' + format, path + 'negx' + format,
+          path + 'posy' + format, path + 'negy' + format,
+          path + 'posz' + format, path + 'negz' + format
+        ];
+        const textureCube = new THREE.CubeTextureLoader().load(urls);
+        textureCube.format = THREE.RGBFormat;
+        scene.background   = textureCube;
+
+        // Ajout des objets
+        // Groupes
+        // Groupe pour le Soleil et ses fils
+        const solarSystem = new THREE.Group();
+        scene.add( solarSystem );
+
+        // Groupe pour la terre et ses fils
+        earthGroup = new THREE.Group();
+        solarSystem.add( earthGroup );
+
+        // Groupe pour la lune et ses fils
+        moonGroup = new THREE.Group();
+        moonGroup.position.set(35, 0, -35);
+        earthGroup.add(moonGroup);
+
+        // Astres
+        //Soleil
+        let material = new THREE.MeshBasicMaterial({color: 0xFFFF00});
+        let geometry = new THREE.SphereGeometry(10, 32, 32);
+        const sun = new THREE.Mesh(geometry, material);
+        solarSystem.add( sun );
+
+        // Lumière du soleil
+        const sunLight = new THREE.PointLight(0xffffff, 1.5);
+        solarSystem.add(sunLight)
+
+        // Terre
+        let mapUrl = "images/earth_atmos_2048.jpg";
+        let map = new THREE.TextureLoader().load(mapUrl);
+        material = new THREE.MeshPhongMaterial({ map: map, specular: 0x222222});
+        geometry = new THREE.SphereGeometry(4, 32, 32);
+        earth = new THREE.Mesh(geometry, material);
+        earth.position.set(35, 0, -35);
+        earthGroup.add( earth );
+
+        // Lune
+        mapUrl = "images/moon_1024.jpg";
+        map    = new THREE.TextureLoader().load( mapUrl );
+        material = new THREE.MeshPhongMaterial({ map: map, specular: 0x222222 });
+        geometry = new THREE.SphereGeometry(2, 32, 32);
+        moon = new THREE.Mesh(geometry, material);
+        moon.position.set(5, 0, -5);
+        moonGroup.add( moon );
+
+        // Ombres
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 512;  // default
+        sunLight.shadow.mapSize.height = 512; // default
+        sunLight.shadow.camera.near = 0.5;    // default
+        sunLight.shadow.camera.far = 50;
+
+        earth.castShadow = true;
+        earth.receiveShadow = true;
+        moon.castShadow = true;
+        moon.receiveShadow = true;
+      }
+      
+      // This function is called regularly to update the canvas webgl.
+      function run() {
+	  // Ask to call again run 
+	  requestAnimationFrame( run );
+	  
+	  // Render the scene
+	  render();
+	  
+	  // Calls the animate function if objects or camera should move
+	  animate();
+      }
+      
+      // This function is called regularly to take care of the rendering.
+      function render() {
+        // Render the scene
+        renderer.render( scene, camera );
+      }
+      
+      // This function is called regularly to update objects.
+      function animate() {
+        // Computes how time has changed since last display
+        const now = Date.now();
+        const deltaTime = now - curTime;
+        curTime       = now;
+        const fracTime = deltaTime / 1000; // in seconds
+        const angle = fracTime * Math.PI * 2;
+        earthGroup.rotation.y += angle / 365; // la terre tourne en 365 jours
+        earth.rotation.y      += angle; // et en un jour sur elle-même
+        moonGroup.rotation.y  += angle / 28; // la lune tourne en 28 jours autour de la terre
+        moon.rotation.y       += angle /28; // et en 28 jours aussi sur elle-même pour faire face à la terre
+
+        controls.target = earth.matrixWorld.getPosition();
+        controls.update();
+      }
+      
+    </script>
+  </head>
+  <body>
+    <div id="info"> Partie 2 </div>
+    <canvas id="webglcanvas" style="border: none;background-color:#000000"
+	    width="1900" height="900"></canvas>
+    <!-- We run the WebGL code at the end to be sure that the document is loaded.
+      -->
+    <script>
+      init(); run();
+    </script> 
+  </body>
+</html>
+

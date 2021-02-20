@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Partie 3 : Trampoline</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <style>
+    body {
+      background-color: #cce0ff;
+      color: #000;
+    }
+    a {
+      color: #080;
+    }
+  </style>
+</head>
+
+<body>
+<div id="info">Partie 3 : Trampoline<br/>
+</div>
+
+
+<script src="three.js"></script>
+<script src="js/OrbitControls.js"></script>
+
+<script type="module">
+
+  let camera, scene, renderer, ball, center;
+  let curTime = Date.now();
+  let ballSpeed = 0;
+  let ballRadius = 50;
+
+  init();
+  run();
+
+  function init() {
+
+    const container = document.createElement( 'div' );
+    document.body.appendChild( container );
+
+    // scene
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color( 0xcce0ff );
+    scene.fog = new THREE.Fog( 0xcce0ff, 500, 10000 );
+
+    // camera
+
+    camera = new THREE.PerspectiveCamera( 30, window.innerWidth / window.innerHeight, 1, 10000 );
+    camera.position.set( 1200, 300, 1700 );
+
+    // lights
+
+    scene.add( new THREE.AmbientLight( 0x666666 ) );
+
+    const light = new THREE.DirectionalLight( 0xdfebff, 1 );
+    light.position.set( 50, 200, 100 );
+    light.position.multiplyScalar( 1.3 );
+
+    light.castShadow = true;
+
+    light.shadow.mapSize.width = 1024;
+    light.shadow.mapSize.height = 1024;
+
+    const d = 300;
+
+    light.shadow.camera.left = - d;
+    light.shadow.camera.right = d;
+    light.shadow.camera.top = d;
+    light.shadow.camera.bottom = - d;
+
+    light.shadow.camera.far = 1000;
+
+    scene.add( light );
+
+    // ground
+    const loader = new THREE.TextureLoader();
+    let texUrl = 'images/grass.jpg'
+    const groundTexture = loader.load( texUrl );
+    groundTexture.wrapS = groundTexture.wrapT = THREE.RepeatWrapping;
+    groundTexture.repeat.set( 25, 25 );
+    groundTexture.anisotropy = 16;
+    groundTexture.encoding = THREE.sRGBEncoding;
+
+    const groundMaterial = new THREE.MeshLambertMaterial( { map: groundTexture } );
+
+    let mesh = new THREE.Mesh( new THREE.PlaneGeometry( 20000, 20000 ), groundMaterial );
+    mesh.rotation.x = - Math.PI / 2;
+    mesh.receiveShadow = true;
+    scene.add( mesh );
+
+    // trampoline
+
+    let trampoline = new THREE.Group();
+    trampoline.position.y = 130;
+    scene.add( trampoline );
+
+    let geometry = new THREE.TorusGeometry( 400, 20, 6, 6 );
+    const outlineMat = new THREE.MeshPhongMaterial({ color: 0x000099, specular: 0xFFFFFF });
+    const outline = new THREE.Mesh( geometry, outlineMat );
+    outline.rotation.x = Math.PI / 2;
+    trampoline.add( outline );
+
+    geometry = new THREE.ConeGeometry( 380, 0, 6, 1, true);
+    texUrl = 'images/carbonFiber.webp';
+    const centerTexture = loader.load( texUrl );
+    const centerMat = new THREE.MeshPhongMaterial ({map: centerTexture, specular: 0x222222, side:THREE.DoubleSide});
+    center = new THREE.Mesh( geometry, centerMat );
+    center.rotation.x = Math.PI;
+    center.rotation.y = Math.PI / 2;
+    trampoline.add( center );
+
+    // poles
+
+    const poleGeo = new THREE.BoxGeometry( 5, 130, 5 );
+
+    mesh = new THREE.Mesh( poleGeo, outlineMat );
+    mesh.position.set(400, - 65, 0);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    trampoline.add( mesh );
+
+    mesh = new THREE.Mesh( poleGeo, outlineMat );
+    mesh.position.set(- 400, - 65, 0);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    trampoline.add( mesh );
+
+    mesh = new THREE.Mesh( poleGeo, outlineMat );
+    mesh.position.set(200, - 65, 350);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    trampoline.add( mesh );
+
+    mesh = new THREE.Mesh( poleGeo, outlineMat );
+    mesh.position.set(200, - 65, - 350);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    trampoline.add( mesh );
+
+    mesh = new THREE.Mesh( poleGeo, outlineMat );
+    mesh.position.set(- 200, - 65, 350);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    trampoline.add( mesh );
+
+    mesh = new THREE.Mesh( poleGeo, outlineMat );
+    mesh.position.set(- 200, - 65, - 350);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    trampoline.add( mesh );
+
+    const gg = new THREE.BoxGeometry( 10, 10, 10 );
+    mesh = new THREE.Mesh( gg, outlineMat );
+    mesh.position.set(400, - 130, 0);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    trampoline.add( mesh );
+
+    mesh = new THREE.Mesh( gg, outlineMat );
+    mesh.position.set(- 400, - 130, 0);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    trampoline.add( mesh );
+
+    mesh = new THREE.Mesh( gg, outlineMat );
+    mesh.position.set(200, - 130, 350);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    trampoline.add( mesh );
+
+    mesh = new THREE.Mesh( gg, outlineMat );
+    mesh.position.set(200, - 130, - 350);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    trampoline.add( mesh );
+
+    mesh = new THREE.Mesh( gg, outlineMat );
+    mesh.position.set(- 200, - 130, 350);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    trampoline.add( mesh );
+
+    mesh = new THREE.Mesh( gg, outlineMat );
+    mesh.position.set(- 200, - 130, - 350);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    trampoline.add( mesh );
+
+    // ball
+
+    texUrl = "images/footballBall.jpg";
+    const ballTexture = loader.load( texUrl );
+    const ballMaterial = new THREE.MeshPhongMaterial({ map: ballTexture, specular: 0x222222});
+    geometry = new THREE.SphereGeometry(ballRadius, 32, 32);
+    ball = new THREE.Mesh(geometry, ballMaterial);
+    trampoline.add( ball ); // On place le ballon dans le même référenciel que le trampoline pour faciliter les calculs
+
+    // renderer
+
+    renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+    container.appendChild( renderer.domElement );
+
+    renderer.outputEncoding = THREE.sRGBEncoding;
+
+    renderer.shadowMap.enabled = true;
+
+    // controls
+    const controls = new THREE.OrbitControls( camera, renderer.domElement );
+    controls.maxPolarAngle = Math.PI * 0.49;
+    controls.minDistance = 1000;
+    controls.maxDistance = 5000;
+
+    //
+
+    window.addEventListener( 'resize', onWindowResize );
+
+  }
+
+  //
+
+  function onWindowResize() {
+
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize( window.innerWidth, window.innerHeight );
+
+  }
+
+  //
+
+  function run() {
+    requestAnimationFrame( run );
+    render();
+    animate()
+  }
+
+  function animate() {
+    // Computes how time has changed since last display
+    const now = Date.now();
+    const deltaTime = now - curTime;
+    curTime       = now;
+    const fracTime = deltaTime / 1000; // in seconds
+    const angle = fracTime * Math.PI * 2;
+    const lowestBallPoint = ball.position.y - ballRadius;
+
+    // On ne cherche pas ici à être correcte d'un point de vue physique (on n'utilise ni gravité, ni aucune formule pour le rebond)
+    // Seulement à reproduire approximativement le comportement du ballon et du trampoline (sans frottement)
+
+    // Ball movement
+    if (lowestBallPoint > 0) // Au-dessus de 0, on est attiré par la gravité
+      ballSpeed -= 10 * fracTime;
+    else{ // En-dessous de 0, on est freiné par la toile
+      ballSpeed *= 0.9;
+      if (ballSpeed > -1) // Lorsque la toile a quasiment arrêté la balle, la tension lui redonne de l'élan vers le haut
+        ballSpeed = 10;
+    }
+    ball.position.y = Math.max(ball.position.y +ballSpeed, -120 + ballRadius); // Le max permet de s'assurer que la balle ne force jamais sur la toile au point de traverser le sol
+    ball.rotation.x += angle/6;
+    ball.rotation.z += angle/6;
+
+    // Trampoline movement
+    if (lowestBallPoint <= 0 ) { // Si la balle est en dessous de 0, elle étire la toile
+      const newThickness = (-lowestBallPoint + 5) // Le +5 permet de s'assurer que la balle ne traverse pas partiellement la toile (sinon la pointe du cône laisse traverser le ballon , plus large)
+      center.geometry = new THREE.ConeGeometry(380,newThickness , 6, 1, true); // Ca manque un peu d'arrondi...
+      center.position.y = -newThickness/ 2; // Puisque la position est set au milieu de la hauteur, on doit la déplacer pour que la toile ne s'étire que "vers le bas"
+    }
+    else { // Si la balle ne touche pas la toile, on replace celle-ci au repos
+      center.geometry = new THREE.ConeGeometry( 380, 0, 6, 1, true);
+      center.position.y = 0;
+    }
+
+  }
+
+  function render() {
+    renderer.render( scene, camera );
+  }
+
+</script>
+</body>
+</html>
